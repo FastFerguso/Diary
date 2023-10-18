@@ -6,13 +6,17 @@ from flask import Flask, render_template, jsonify, request
 from datetime import datetime
 from pymongo import MongoClient
 
+import ssl
+
+folder = os.path.join(os.getcwd(), "/static")
+
 dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
 
 MONGODB_URI = os.environ.get("MONGODB_URI")
 DB_NAME =  os.environ.get("DB_NAME")
 
-client = MongoClient(MONGODB_URI)
+client = MongoClient(MONGODB_URI, ssl_cert_reqs=ssl.CERT_NONE)
 
 db = client[DB_NAME]
 
@@ -33,17 +37,25 @@ def diary_post():
     timeprint = current_time.strftime('%Y.%m.%d')
     timefile = current_time.strftime('%Y-%m-%d-%H-%M-%S')
 
-    img_receive = request.files['img_give']
-    extension = img_receive.filename.split('.')[-1]
-    filename = f'file-{timefile}.{extension}'
-    save_to = f'static/{filename}'
-    img_receive.save(save_to)
+    if 'img_give' in request.files:
+        print(request.files.keys()) 
+        img_receive = request.files['img_give']
+        extension = img_receive.filename.split('.')[-1]
+        filename = f'file-{timefile}.{extension}'
+        save_to = f'static/{filename}'
+        img_receive.save(save_to)
+    else:
+        filename = 'default-img.jpg'
 
-    user_img_receive = request.files['user_img_give']
-    user_extension = user_img_receive.filename.split('.')[-1]
-    user_filename = f'user-{timefile}.{user_extension}'
-    user_save_to = f'static/{user_filename}'
-    user_img_receive.save(user_save_to)
+    if 'user_img_give' in request.files:
+        print(request.files.keys())
+        user_img_receive = request.files['user_img_give']
+        user_extension = user_img_receive.filename.split('.')[-1]
+        user_filename = f'user-{timefile}.{user_extension}'
+        user_save_to = f'static/{user_filename}'
+        user_img_receive.save(user_save_to)
+    else:
+        user_filename = 'default-profpic.png'
 
     doc = {
         'num':num,
@@ -58,7 +70,7 @@ def diary_post():
     return jsonify({'msg':'Thanks for the Story!'})
 
 @app.route("/diary", methods=["GET"])
-def movie_get():
+def diary_get():
     articles = list(db.diary.find({}, {'_id': False}))
     return jsonify({'articles': articles})
 
